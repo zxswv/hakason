@@ -16,13 +16,12 @@
     "next": "16.1.6",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
-<<<<<<< HEAD
+
     "react-day-picker": "^9.13.2",
-    "react-dom": "19.2.3",
-=======
+
     "react-dom": "19.2.3",
     "react-textarea-autosize": "^8.5.9",
->>>>>>> c74ca4bc54883d1c603f72b5adea8f7b90416913
+
     "tailwind-merge": "^3.4.1"
   },
   "devDependencies": {
