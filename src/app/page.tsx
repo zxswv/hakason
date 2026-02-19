@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import FloatingActions from "@/app/under botton/page";
+import FloatingActions from "@/components/under botton/page";
 import Calendar from "@/components/Calendar";
 import VoiceRecorder from "@/components/voice";
 import { CalendarEvent } from "@/lib/types";
@@ -14,7 +14,6 @@ import { CalendarEvent } from "@/lib/types";
         <Calendar /> */}
         <VoiceRecorder />
       </main>
-      <FloatingActions onAddEvent={(event) => setPendingEvent(event)} />
     </div>
   );
 }
