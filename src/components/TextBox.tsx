@@ -38,7 +38,6 @@ export default function TextBox({ onClose, onSubmit }: Props) {
   // マウント時に自動で録音開始
   useEffect(() => {
     if (isMounted && isSupported) {
-      // 少し遅らせてマイク許可ダイアログとの競合を避ける
       const timer = setTimeout(() => {
         toggleListening();
       }, 300);
@@ -58,13 +57,11 @@ export default function TextBox({ onClose, onSubmit }: Props) {
   const handleSubmit = () => {
     const text = (transcript + interimTranscript).trim();
     if (!text) return;
-    if (isListening) toggleListening(); // 録音停止
+    if (isListening) toggleListening();
     onSubmit(text);
     clearTranscript();
   };
 
-  // テキストエリアで直接編集もできるよう setTranscript を使用
-  const displayText = transcript;
   const placeholderText = isListening
     ? "🎤 聞いています…話しかけてください"
     : "音声入力または直接入力してください";
@@ -100,7 +97,7 @@ export default function TextBox({ onClose, onSubmit }: Props) {
             <TextareaAutosize
               minRows={1}
               maxRows={5}
-              value={displayText}
+              value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
               placeholder={placeholderText}
               className="flex-1 !text-base border-none focus:ring-0 resize-none py-4 px-4 bg-transparent outline-none leading-tight"
@@ -144,7 +141,7 @@ export default function TextBox({ onClose, onSubmit }: Props) {
                   <Button
                     size="icon"
                     onClick={handleSubmit}
-                    disabled={!displayText.trim() && !interimTranscript.trim()}
+                    disabled={!transcript.trim() && !interimTranscript.trim()}
                     className="h-10 w-10 shrink-0 rounded-full bg-teal-500 hover:bg-teal-600 text-white disabled:opacity-40"
                   >
                     <SendHorizontalIcon className="h-5 w-5" />
