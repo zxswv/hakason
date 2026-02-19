@@ -1,79 +1,74 @@
-"use client" //
-import { Button } from "@/components/ui/button"
+"use client";
+
+import { Button } from "@/components/ui/button";
 import {
   InputGroup,
   InputGroupAddon,
-
-} from "@/components/ui/input-group"
+} from "@/components/ui/input-group";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { AudioLinesIcon, CameraIcon, SendHorizontalIcon } from "lucide-react"
-// 1. ライブラリをインポート
-import TextareaAutosize from "react-textarea-autosize"
+} from "@/components/ui/tooltip";
+import { AudioLinesIcon, CameraIcon, SendHorizontalIcon } from "lucide-react";
+import TextareaAutosize from "react-textarea-autosize";
 
 export default function TextBox() {
   return (
     <div className="fixed bottom-8 left-1/2 w-full max-w-3xl -translate-x-1/2 px-4">
       <TooltipProvider>
-  
-        <div className="flex items-end gap-3">
+        <div className="flex items-end gap-2">
           
-          {/* カメラボタン（位置がズレないよう下揃えの余白を調整） */}
-          <Button variant="outline" size="icon" className="h-12 w-12 shrink-0 rounded-full mb-1">
-            <CameraIcon className="h-6 w-6" />
-          </Button>
-
+          {/* カメラボタン（外側に配置） */}
+          
 
           <div className="flex-1">
-            <InputGroup className="bg-background shadow-lg rounded-2xl border-2 overflow-hidden items-end">
-              {/* 2. TextareaAutosizeに変更 */}
+            <InputGroup className="bg-background shadow-lg rounded-3xl border-2 overflow-hidden items-end flex pr-2">
+              
               <TextareaAutosize
-                minRows={1}           // 最低限の行数
-                maxRows={5}           // 最大どこまで伸びるか（これ以上はスクロール）
+                minRows={1}
+                maxRows={5}
                 placeholder="Send a message..."
-                className="w-full !text-xl border-none focus:ring-0 resize-none py-4 px-4 bg-transparent outline-none leading-tight"
-                // Enterで送信したい場合はここに処理を追加
+                className="flex-1 !text-xl border-none focus:ring-0 resize-none py-4 px-4 bg-transparent outline-none leading-tight"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    console.log("送信処理をここに書く");
+                    console.log("送信処理");
                   }
                 }}
               />
               
-              <InputGroupAddon align="inline-end" className="px-4 mb-3">
+              {/* テキストボックス内の右側アクションエリア */}
+              <div className="flex items-center gap-1 mb-2">
+                {/* ボイスモード */}
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button className="hover:bg-accent p-2 rounded-full transition-colors">
-                      <AudioLinesIcon className="h-6 w-6 text-muted-foreground" />
+                    <button className="hover:bg-accent p-2 rounded-full transition-colors text-muted-foreground">
+                      <AudioLinesIcon className="h-6 w-6" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>Voice Mode</TooltipContent>
                 </Tooltip>
-              </InputGroupAddon>
+
+                {/* 送信ボタンをここに追加 */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      size="icon" 
+                      className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground"
+                    >
+                      <SendHorizontalIcon className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Send Message</TooltipContent>
+                </Tooltip>
+              </div>
             </InputGroup>
           </div>
-
-          {/* 送信ボタン */}
-          <Button 
-            size="icon" 
-            className="h-12 w-12 shrink-0 rounded-full bg-primary text-primary-foreground mb-1"
-          >
-            <SendHorizontalIcon className="h-6 w-6" />
-          </Button>
 
         </div>
       </TooltipProvider>
     </div>
-  )
+  );
 }
-
-
-
-
-
-
