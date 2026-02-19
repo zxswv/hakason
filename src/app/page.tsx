@@ -6,19 +6,23 @@ import Calendar from "@/components/Calendar";
 import { CalendarEvent } from "@/lib/types";
 
 export default function Home() {
-  // 音声入力などの外部追加イベントを Calendr に受け渡す
-  const [pendingEvent, setPendingEvent] = useState<CalendarEvent | null>(null);
+  /**
+   * 音声入力 → FloatingActions → ここ → Calendar の流れで仮予定を受け渡す。
+   * null のときは何もしない。セットされると Calendar 側で EventDialog が開く。
+   */
+  const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null);
 
   return (
     <div className="relative">
       <main>
         <Calendar
-          pendingEvent={pendingEvent}
-          onPendingConsumed={() => setPendingEvent(null)}
+          previewEvent={previewEvent}
+          onPreviewConsumed={() => setPreviewEvent(null)}
         />
       </main>
-      {/* フローティングバー：Mic ボタンが押されると VoiceModal を開き、追加されたイベントを Calendar に渡す */}
-      <FloatingActions onAddEvent={(event) => setPendingEvent(event)} />
+
+      {/* FloatingActions バー（画面下部固定） */}
+      <FloatingActions onPreviewEvent={(event) => setPreviewEvent(event)} />
     </div>
   );
 }

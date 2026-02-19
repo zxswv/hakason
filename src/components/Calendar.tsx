@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   format,
   startOfMonth,
@@ -24,54 +24,62 @@ import {
   getEventsForDay,
   isEventStart,
   isEventEnd,
-  CALENDARS,
 } from "@/lib/events";
 import EventDialog from "@/components/EventDialog";
 
 const MAX_VISIBLE_EVENTS = 3;
+const DAY_HEADERS = ["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "サン"];
 
-interface CalendarProps {
-  /** 外部（音声入力など）から追加されたイベント */
-  pendingEvent?: CalendarEvent | null;
-  onPendingConsumed?: () => void;
+interface Props {
+  /**
+   * 音声入力など外部から渡される「仮予定」。
+   * セットされると EventDialog が開いて確認を求める。
+   * 確定 → カレンダーに追加、キャンセル → 破棄。
+   */
+  previewEvent?: CalendarEvent | null;
+  onPreviewConsumed?: () => void;
 }
 
-export default function Calendar({ pendingEvent, onPendingConsumed }: CalendarProps = {}) {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 1, 1));
-  const [events, setEvents] = useState<CalendarEvent[]>(INITIAL_EVENTS);
+export default function Calendar({ previewEvent, onPreviewConsumed }: Props) {
+  const [currentDate,  setCurrentDate]  = useState(new Date(2026, 1, 1));
+  const [events,       setEvents]       = useState<CalendarEvent[]>(INITIAL_EVENTS);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogOpen,   setDialogOpen]   = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
 
-  // 音声入力などから pendingEvent が来たら即追加してその月に移動
-  const [lastPendingId, setLastPendingId] = useState<string | null>(null);
-  if (pendingEvent && pendingEvent.id !== lastPendingId) {
-    setLastPendingId(pendingEvent.id);
-    setEvents((prev) => [...prev, pendingEvent]);
-    setCurrentDate(new Date(pendingEvent.date.getFullYear(), pendingEvent.date.getMonth(), 1));
-    onPendingConsumed?.();
-  }
+  // ── 仮予定が渡されたら EventDialog を開く ──────────────────────
+  useEffect(() => {
+    if (!previewEvent) return;
+    // 仮予定の日付の月へ移動
+    setCurrentDate(
+      new Date(previewEvent.date.getFullYear(), previewEvent.date.getMonth(), 1)
+    );
+    // EventDialog を「新規追加モード」で開く
+    // editingEvent は null のまま → 保存時に新規追加扱い
+    setSelectedDate(previewEvent.date);
+    setEditingEvent(previewEvent);   // フォームの初期値として仮予定を渡す
+    setDialogOpen(true);
+    onPreviewConsumed?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewEvent]);
 
+  // ── カレンダーグリッド計算 ─────────────────────────────────────
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
-    const monthEnd = endOfMonth(currentDate);
-    const calStart = startOfWeek(monthStart, { weekStartsOn: 1 }); // 月曜始まり
-    const calEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    const monthEnd   = endOfMonth(currentDate);
+    const calStart   = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const calEnd     = endOfWeek(monthEnd,     { weekStartsOn: 1 });
     return eachDayOfInterval({ start: calStart, end: calEnd });
   }, [currentDate]);
 
   const weeks = useMemo(() => {
     const result: Date[][] = [];
-    for (let i = 0; i < calendarDays.length; i += 7) {
+    for (let i = 0; i < calendarDays.length; i += 7)
       result.push(calendarDays.slice(i, i + 7));
-    }
     return result;
   }, [calendarDays]);
 
-  const handlePrevMonth = () => setCurrentDate(subMonths(currentDate, 1));
-  const handleNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
-  const handleToday = () => setCurrentDate(new Date());
-
+  // ── イベントハンドラ ──────────────────────────────────────────
   const handleDayClick = (date: Date) => {
     setSelectedDate(date);
     setEditingEvent(null);
@@ -86,11 +94,12 @@ export default function Calendar({ pendingEvent, onPendingConsumed }: CalendarPr
   };
 
   const handleSaveEvent = (event: CalendarEvent) => {
-    if (editingEvent) {
-      setEvents((prev) => prev.map((e) => (e.id === event.id ? event : e)));
-    } else {
-      setEvents((prev) => [...prev, event]);
-    }
+    setEvents((prev) => {
+      const exists = prev.some((e) => e.id === event.id);
+      return exists
+        ? prev.map((e) => (e.id === event.id ? event : e))
+        : [...prev, event];
+    });
     setDialogOpen(false);
     setEditingEvent(null);
   };
@@ -101,44 +110,30 @@ export default function Calendar({ pendingEvent, onPendingConsumed }: CalendarPr
     setEditingEvent(null);
   };
 
-  const getDayEvents = (day: Date) => {
-    return getEventsForDay(events, day);
+  // ダイアログを閉じたとき（キャンセル時）は仮予定を破棄するだけでOK
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      setDialogOpen(false);
+      setEditingEvent(null);
+    }
   };
 
-  const DAY_HEADERS = ["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "サン"];
-
+  // ── レンダリング ─────────────────────────────────────────────
   return (
     <div className="flex flex-col h-screen bg-white font-sans pb-24">
       {/* ヘッダー */}
-      <header className="flex items-center px-4 py-2 border-b border-gray-200 bg-white">
-        <div className="flex items-center gap-2 mr-6">
-          <span className="text-teal-500 font-bold text-xl">カレンダー</span>
-        </div>
+      <header className="flex items-center px-4 py-2 border-b border-gray-200 bg-white shrink-0">
+        <span className="text-teal-500 font-bold text-xl mr-6 select-none">カレンダー</span>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleToday}
-          className="mr-3 text-sm font-medium"
-        >
+        <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())} className="mr-3 text-sm font-medium">
           今日
         </Button>
 
         <div className="flex items-center gap-1 mr-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handlePrevMonth}
-            className="w-7 h-7"
-          >
+          <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleNextMonth}
-            className="w-7 h-7"
-          >
+          <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
@@ -153,11 +148,7 @@ export default function Calendar({ pendingEvent, onPendingConsumed }: CalendarPr
           </Button>
           <Button
             size="sm"
-            onClick={() => {
-              setSelectedDate(new Date());
-              setEditingEvent(null);
-              setDialogOpen(true);
-            }}
+            onClick={() => { setSelectedDate(new Date()); setEditingEvent(null); setDialogOpen(true); }}
             className="bg-teal-500 hover:bg-teal-600 text-white rounded-full w-8 h-8 p-0"
           >
             <Plus className="w-4 h-4" />
@@ -165,52 +156,47 @@ export default function Calendar({ pendingEvent, onPendingConsumed }: CalendarPr
         </div>
       </header>
 
-      {/* カレンダーグリッド */}
+      {/* 曜日ヘッダー */}
+      <div className="grid grid-cols-7 border-b border-gray-200 shrink-0">
+        {DAY_HEADERS.map((day, i) => (
+          <div
+            key={day}
+            className={`py-2 text-center text-xs font-medium border-r border-gray-100 last:border-r-0 ${
+              i === 5 ? "text-blue-500" : i === 6 ? "text-red-500" : "text-gray-600"
+            }`}
+          >
+            {day}
+          </div>
+        ))}
+      </div>
+
+      {/* グリッド */}
       <div className="flex-1 overflow-auto">
-        <div className="grid grid-cols-7 border-b border-gray-200">
-          {DAY_HEADERS.map((day, i) => (
-            <div
-              key={day}
-              className={`py-2 text-center text-xs font-medium border-r border-gray-100 last:border-r-0 ${
-                i === 5
-                  ? "text-blue-500"
-                  : i === 6
-                  ? "text-red-500"
-                  : "text-gray-600"
-              }`}
-            >
-              {day}
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 flex-1">
-          {weeks.map((week, weekIdx) =>
-            week.map((day, dayIdx) => {
-              const dayEvents = getDayEvents(day);
-              const isCurrentMonth = isSameMonth(day, currentDate);
-              const isTodayDate = isToday(day);
-              const isSat = isSaturday(day);
-              const isSun = isSunday(day);
-
-              const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
-              const hiddenCount = dayEvents.length - MAX_VISIBLE_EVENTS;
+        <div className="grid grid-cols-7">
+          {weeks.map((week) =>
+            week.map((day) => {
+              const dayEvents    = getEventsForDay(events, day);
+              const inMonth      = isSameMonth(day, currentDate);
+              const todayFlag    = isToday(day);
+              const isSat        = isSaturday(day);
+              const isSun        = isSunday(day);
+              const visible      = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
+              const hiddenCount  = dayEvents.length - MAX_VISIBLE_EVENTS;
 
               return (
                 <div
                   key={day.toISOString()}
                   onClick={() => handleDayClick(day)}
                   className={`min-h-[110px] border-b border-r border-gray-100 last:border-r-0 p-1 cursor-pointer hover:bg-gray-50 transition-colors ${
-                    !isCurrentMonth ? "bg-gray-50/50" : ""
+                    !inMonth ? "bg-gray-50/50" : ""
                   }`}
                 >
-                  {/* 日付 */}
                   <div className="flex items-center mb-1">
                     <span
                       className={`text-sm font-medium w-6 h-6 flex items-center justify-center rounded-full ${
-                        isTodayDate
+                        todayFlag
                           ? "bg-teal-500 text-white"
-                          : !isCurrentMonth
+                          : !inMonth
                           ? "text-gray-400"
                           : isSun
                           ? "text-red-500"
@@ -223,12 +209,11 @@ export default function Calendar({ pendingEvent, onPendingConsumed }: CalendarPr
                     </span>
                   </div>
 
-                  {/* イベント */}
                   <div className="space-y-0.5">
-                    {visibleEvents.map((event) => {
-                      const isStart = isEventStart(event, day);
-                      const isEnd = isEventEnd(event, day);
-                      const isMultiDay = !!event.endDate && event.isAllDay;
+                    {visible.map((event) => {
+                      const evStart  = isEventStart(event, day);
+                      const evEnd    = isEventEnd(event, day);
+                      const multiDay = !!event.endDate && event.isAllDay;
 
                       return (
                         <div
@@ -237,45 +222,32 @@ export default function Calendar({ pendingEvent, onPendingConsumed }: CalendarPr
                           className={`text-xs py-0.5 px-1 cursor-pointer hover:opacity-80 transition-opacity overflow-hidden whitespace-nowrap overflow-ellipsis ${
                             event.isAllDay
                               ? `text-white font-medium ${
-                                  isStart && isEnd
-                                    ? "rounded"
-                                    : isStart
-                                    ? "rounded-l mr-0 pr-0"
-                                    : isEnd
-                                    ? "rounded-r ml-0 pl-0"
-                                    : "mx-0 px-0"
+                                  evStart && evEnd ? "rounded"
+                                  : evStart         ? "rounded-l pr-0"
+                                  : evEnd           ? "rounded-r pl-0"
+                                  : "px-0"
                                 }`
                               : "rounded text-gray-700"
                           }`}
                           style={{
-                            backgroundColor: event.isAllDay
-                              ? event.color
-                              : "transparent",
-                            borderLeft: !event.isAllDay
-                              ? `3px solid ${event.color}`
-                              : "none",
+                            backgroundColor: event.isAllDay ? event.color : "transparent",
+                            borderLeft: !event.isAllDay ? `3px solid ${event.color}` : "none",
                           }}
                         >
-                          {(!isMultiDay || isStart) && (
+                          {(!multiDay || evStart) && (
                             <span>
                               {!event.isAllDay && event.startTime && (
-                                <span className="opacity-75 mr-1">
-                                  {event.startTime.slice(0, -3) === "00"
-                                    ? event.startTime
-                                    : event.startTime}
-                                </span>
+                                <span className="opacity-75 mr-1 text-[10px]">{event.startTime}</span>
                               )}
                               {event.title}
                             </span>
                           )}
-                          {isMultiDay && !isStart && <span>&nbsp;</span>}
+                          {multiDay && !evStart && <span>&nbsp;</span>}
                         </div>
                       );
                     })}
                     {hiddenCount > 0 && (
-                      <div className="text-xs text-gray-500 px-1">
-                        +{hiddenCount} 件
-                      </div>
+                      <div className="text-xs text-gray-500 px-1">+{hiddenCount} 件</div>
                     )}
                   </div>
                 </div>
@@ -285,17 +257,15 @@ export default function Calendar({ pendingEvent, onPendingConsumed }: CalendarPr
         </div>
       </div>
 
-      {/* イベント追加/編集ダイアログ */}
-      {dialogOpen && (
-        <EventDialog
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-          selectedDate={selectedDate}
-          editingEvent={editingEvent}
-          onSave={handleSaveEvent}
-          onDelete={handleDeleteEvent}
-        />
-      )}
+      {/* EventDialog（通常の追加/編集 & 音声入力からの仮予定確認を兼用） */}
+      <EventDialog
+        open={dialogOpen}
+        onOpenChange={handleDialogClose}
+        selectedDate={selectedDate}
+        editingEvent={editingEvent}
+        onSave={handleSaveEvent}
+        onDelete={handleDeleteEvent}
+      />
     </div>
   );
 }

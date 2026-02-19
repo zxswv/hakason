@@ -15,32 +15,50 @@ import {
   FilesIcon,
   CheckIcon,
 } from "lucide-react";
-import VoiceModal from "@/components/VoiceModal";
+import TextBox from "@/components/TextBox";
 import { CalendarEvent } from "@/lib/types";
+import { parseVoiceInput, toCalendarEvent } from "@/lib/parseVoiceInput";
 
-// onAddEvent を受け取り、Mic ボタンを押すと VoiceModal が開く
 interface Props {
-  onAddEvent: (event: CalendarEvent) => void;
+  /** 仮予定を確認ダイアログに渡すコールバック */
+  onPreviewEvent: (event: CalendarEvent) => void;
 }
 
-export default function FloatingActions({ onAddEvent }: Props) {
+export default function FloatingActions({ onPreviewEvent }: Props) {
   const [voiceOpen, setVoiceOpen] = useState(false);
 
+  // TextBox から送信されたテキストを受け取り、解析 → 仮予定として親へ渡す
+  const handleSubmit = (text: string) => {
+    const parsed   = parseVoiceInput(text);
+    const newEvent = toCalendarEvent(parsed);
+    setVoiceOpen(false);
+    onPreviewEvent(newEvent);
+  };
+
   const actions = [
-    { icon: <CameraIcon size={24} />,   label: "Camera",       onClick: undefined },
-    { icon: <Calendar1Icon size={24} />, label: "Calendar",     onClick: undefined },
+    { icon: <CameraIcon size={24} />,   label: "Camera",         onClick: undefined },
+    { icon: <Calendar1Icon size={24} />, label: "Calendar",      onClick: undefined },
     {
       icon: <MicIcon size={24} />,
-      label: "音声で予定追加",
-      onClick: () => setVoiceOpen(true),
-      highlight: true,
+      label: voiceOpen ? "音声入力を閉じる" : "音声で予定追加",
+      onClick: () => setVoiceOpen((prev) => !prev),
+      isActive: voiceOpen,
     },
-    { icon: <FilesIcon size={24} />,    label: "Documents",    onClick: undefined },
-    { icon: <CheckIcon size={24} />,    label: "Check",        onClick: undefined },
+    { icon: <FilesIcon size={24} />,    label: "Documents",      onClick: undefined },
+    { icon: <CheckIcon size={24} />,    label: "Check",          onClick: undefined },
   ];
 
   return (
     <>
+      {/* ── TextBox（Mic ボタンの上に重ねて表示） ── */}
+      {voiceOpen && (
+        <TextBox
+          onClose={() => setVoiceOpen(false)}
+          onSubmit={handleSubmit}
+        />
+      )}
+
+      {/* ── FloatingActions バー ── */}
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 w-auto z-40">
         <TooltipProvider delayDuration={200}>
           <div className="flex items-center justify-between gap-6 rounded-2xl bg-background/80 backdrop-blur-md p-3 shadow-2xl border border-border">
@@ -52,8 +70,8 @@ export default function FloatingActions({ onAddEvent }: Props) {
                     size="icon"
                     onClick={action.onClick}
                     className={`h-12 w-12 rounded-xl transition-all duration-200 ${
-                      action.highlight
-                        ? "text-teal-500 hover:bg-teal-500 hover:text-white"
+                      action.isActive
+                        ? "bg-teal-500 text-white hover:bg-teal-600"
                         : "hover:bg-primary hover:text-primary-foreground"
                     }`}
                   >
@@ -68,16 +86,6 @@ export default function FloatingActions({ onAddEvent }: Props) {
           </div>
         </TooltipProvider>
       </div>
-
-      {/* 音声入力モーダル */}
-      <VoiceModal
-        open={voiceOpen}
-        onOpenChange={setVoiceOpen}
-        onAddEvent={(event) => {
-          onAddEvent(event);
-          setVoiceOpen(false);
-        }}
-      />
     </>
   );
 }
