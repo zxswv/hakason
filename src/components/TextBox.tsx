@@ -15,7 +15,7 @@ import { AudioLinesIcon, CameraIcon, SendHorizontalIcon } from "lucide-react"
 // 1. ライブラリをインポート
 import TextareaAutosize from "react-textarea-autosize"
 
-export default function ButtonGroupNested() {
+export default function TextBox() {
   return (
     <div className="fixed bottom-8 left-1/2 w-full max-w-3xl -translate-x-1/2 px-4">
       <TooltipProvider>
