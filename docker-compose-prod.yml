@@ -1,0 +1,28 @@
+services: #本番環境のみ ↓ ここからコメントアウト
+  next.js: #コンテナ1
+    build:
+      dockerfile: ./Dockerfile.next.js.prod #ここだけ本番環境用に変更
+    container_name: 2next.js
+    ports:
+      - 3300:3300
+# ↑ ここまでコメントアウト
+
+  # DB: #コンテナ2
+  # image: postgres:14 #イメージ名
+  # container_name: db #コンテナ名
+  # # container_name: db #コンテナ名
+  # restart: always #常に再起動
+  # # command: --skip-grant-tables --skip-networking #MySQLサーバーは特定のセキュリティ機能を無効
+  # environment:
+  #   # POSTGRES_ROOT_PASSWORD: tt #rootパスワード
+  #   POSTGRES_USER: tt #ユーザ名
+  #   POSTGRES_PASSWORD: tt #パスワード
+  #   POSTGRES_DATABASE: DB #データベース名
+
+
+networks: #ネットワーク
+  default:
+    name: hakason_net
+volumes: #ボリューム
+# ↑ ここまでコメントアウト
+
