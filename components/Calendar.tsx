@@ -30,7 +30,7 @@ import EventDialog from "@/components/EventDialog";
 
 const MAX_VISIBLE_EVENTS = 3;
 
-export default function TimeTreeCalendar() {
+export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date(2026, 1, 1));
   const [events, setEvents] = useState<CalendarEvent[]>(INITIAL_EVENTS);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -97,7 +97,7 @@ export default function TimeTreeCalendar() {
       {/* ヘッダー */}
       <header className="flex items-center px-4 py-2 border-b border-gray-200 bg-white">
         <div className="flex items-center gap-2 mr-6">
-          <span className="text-teal-500 font-bold text-xl">✳ TimeTree</span>
+          <span className="text-teal-500 font-bold text-xl">カレンダー</span>
         </div>
 
         <Button
