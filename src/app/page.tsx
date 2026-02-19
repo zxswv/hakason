@@ -1,22 +1,15 @@
-"use client";
-
-import { useState } from "react";
-import FloatingActions from "@/app/under botton/page";
+import  FloatingActions from "@/app/under botton/page";
 import Calendar from "@/components/Calendar";
-import { CalendarEvent } from "@/lib/types";
+import Image from "next/image";
 
-export default function Home() {
-  const [pendingEvent, setPendingEvent] = useState<CalendarEvent | null>(null);
-
-  return (
-    <div className="relative">
-      <main>
-        <Calendar
-          pendingEvent={pendingEvent}
-          onPendingConsumed={() => setPendingEvent(null)}
-        />
+   export default function Home() {
+     return (
+       <div >
+      <main >
+      <FloatingActions/>
+        <Calendar />
       </main>
-      <FloatingActions onAddEvent={(event) => setPendingEvent(event)} />
+
     </div>
   );
 }
