@@ -10,9 +10,11 @@ import { CalendarEvent } from "@/lib/types";
      return (
        <div >
       <main >
-      {/* <FloatingActions/>
-        <Calendar /> */}
-        <VoiceRecorder />
+      <FloatingActions onAddEvent={function (event: CalendarEvent): void {
+             throw new Error("Function not implemented.");
+           } }/>
+        <Calendar />
+        {/* <VoiceRecorder /> */}
       </main>
     </div>
   );
