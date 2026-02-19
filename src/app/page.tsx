@@ -1,7 +1,10 @@
-import  FloatingActions from "@/app/under botton/page";
+"use client";
+
+import { useState } from "react";
+import FloatingActions from "@/app/under botton/page";
 import Calendar from "@/components/Calendar";
 import VoiceRecorder from "@/components/voice";
-import Image from "next/image";
+import { CalendarEvent } from "@/lib/types";
 
    export default function Home() {
      return (
@@ -11,6 +14,7 @@ import Image from "next/image";
         <Calendar /> */}
         <VoiceRecorder />
       </main>
+      <FloatingActions onAddEvent={(event) => setPendingEvent(event)} />
     </div>
   );
 }
