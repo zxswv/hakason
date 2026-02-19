@@ -2,14 +2,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -22,7 +14,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-}
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -129,12 +121,31 @@ body {
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
+/* src/app/globals.css の一番下に追加 */
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+/* 1. 予定追加ダイアログ（モーダル）の背景を強制的に白にする */
+div[role="dialog"],
+div.fixed.inset-0.z-50 + div,
+div[class*="modal"], 
+div[class*="popup"] {
+    background-color: white !important;
+    background: white !important;
+    opacity: 1 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 2. ダイアログ内のフォーム要素が透けるのを防ぐ */
+div[role="dialog"] input,
+div[role="dialog"] textarea,
+div[role="dialog"] select {
+    background-color: #f8fafc !important; /* 薄いグレー */
+    opacity: 1 !important;
+}
+
+/* 3. 背後の黒い膜（オーバーレイ）の設定 */
+.fixed.inset-0.bg-black\/80,
+div[class*="overlay"] {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(2px) !important; /* 少し背景をぼかす */
 }
