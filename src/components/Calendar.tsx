@@ -120,7 +120,7 @@ export default function Calendar({ previewEvent, onPreviewConsumed }: Props) {
 
       {/* ── ヘッダー ── */}
       <header className="flex items-center px-4 py-2 border-b border-gray-200 bg-white shrink-0 gap-2 flex-wrap">
-        <span className="text-teal-500 font-bold text-xl select-none">カレンダー</span>
+        <span className="text-teal-500 font-bold text-xl select-none"></span>
 
         <Button
           variant="outline" size="sm"

@@ -36,16 +36,16 @@ export default function FloatingActions({ onPreviewEvent }: Props) {
   };
 
   const actions = [
-    { icon: <CameraIcon size={24} />,   label: "Camera",         onClick: undefined },
-    { icon: <Calendar1Icon size={24} />, label: "Calendar",      onClick: undefined },
+    { icon: <CameraIcon size={24} />,   label: "カメラ",         onClick: undefined },
+    { icon: <Calendar1Icon size={24} />, label: "カレンダー",      onClick: undefined },
     {
       icon: <MicIcon size={24} />,
       label: voiceOpen ? "音声入力を閉じる" : "音声で予定追加",
       onClick: () => setVoiceOpen((prev) => !prev),
       isActive: voiceOpen,
     },
-    { icon: <FilesIcon size={24} />,    label: "Documents",      onClick: undefined },
-    { icon: <CheckIcon size={24} />,    label: "Check",          onClick: undefined },
+    { icon: <FilesIcon size={24} />,    label: "家計簿",      onClick: undefined },
+    { icon: <CheckIcon size={24} />,    label: "生活",          onClick: undefined },
   ];
 
   return (

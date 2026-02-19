@@ -4,7 +4,9 @@ import { useState } from "react";
 import FloatingActions from "@/components/under botton/page";
 import Calendar from "@/components/Calendar";
 import VoiceRecorder from "@/components/voice";
+import  kakeibo from "@/components/kakeibo";
 import { CalendarEvent } from "@/lib/types";
+import { Kameron } from "next/font/google";
 
 export default function Home() {
   /**
@@ -21,7 +23,7 @@ export default function Home() {
           onPreviewConsumed={() => setPreviewEvent(null)}
         />
       </main>
-
+    <kakeibo />
       {/* FloatingActions バー（画面下部固定） */}
       <FloatingActions onPreviewEvent={(event) => setPreviewEvent(event)} />
     </div>

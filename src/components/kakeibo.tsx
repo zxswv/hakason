@@ -1,3 +1,5 @@
+"use client";
+
 import { revalidatePath } from 'next/cache';
 
 interface Record {
@@ -16,7 +18,7 @@ const plannedRecords = [
   { date: '2026-02-25', category: '家賃', amount: -85000 },
 ];
 
-export default async function App() {
+export default async function kakeibo() {
   const API_URL = 'http://localhost:3000/api/records';
 
   // 1. データ取得
