@@ -12,23 +12,23 @@ import {
   CameraIcon,
   MicIcon,
   Calendar1Icon,
-  FilesIcon,
+  WalletIcon,
   CheckIcon,
 } from "lucide-react";
 import TextBox from "@/components/TextBox";
+import Kakeibo from "@/components/kakeibo";
 import { CalendarEvent } from "@/lib/types";
 import { parseVoiceInput, toCalendarEvent } from "@/lib/parseVoiceInput";
 
 interface Props {
-  /** 仮予定を確認ダイアログに渡すコールバック */
   onPreviewEvent: (event: CalendarEvent) => void;
 }
 
 export default function FloatingActions({ onPreviewEvent }: Props) {
-  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [voiceOpen,   setVoiceOpen]   = useState(false);
+  const [kakeiboOpen, setKakeiboOpen] = useState(false);
 
-  // TextBox から送信されたテキストを受け取り、解析 → 仮予定として親へ渡す
-  const handleSubmit = (text: string) => {
+  const handleVoiceSubmit = (text: string) => {
     const parsed   = parseVoiceInput(text);
     const newEvent = toCalendarEvent(parsed);
     setVoiceOpen(false);
@@ -36,26 +36,48 @@ export default function FloatingActions({ onPreviewEvent }: Props) {
   };
 
   const actions = [
-    { icon: <CameraIcon size={24} />,   label: "カメラ",         onClick: undefined },
-    { icon: <Calendar1Icon size={24} />, label: "カレンダー",      onClick: undefined },
     {
-      icon: <MicIcon size={24} />,
-      label: voiceOpen ? "音声入力を閉じる" : "音声で予定追加",
-      onClick: () => setVoiceOpen((prev) => !prev),
+      icon:    <CameraIcon size={24} />,
+      label:   "Camera",
+      onClick: undefined,
+    },
+    {
+      icon:    <Calendar1Icon size={24} />,
+      label:   "Calendar",
+      onClick: undefined,
+    },
+    {
+      icon:     <MicIcon size={24} />,
+      label:    voiceOpen ? "音声入力を閉じる" : "音声で予定追加",
+      onClick:  () => setVoiceOpen((prev) => !prev),
       isActive: voiceOpen,
     },
-    { icon: <FilesIcon size={24} />,    label: "家計簿",      onClick: undefined },
-    { icon: <CheckIcon size={24} />,    label: "生活",          onClick: undefined },
+    {
+      icon:     <WalletIcon size={24} />,
+      label:    kakeiboOpen ? "家計簿を閉じる" : "家計簿",
+      onClick:  () => setKakeiboOpen((prev) => !prev),
+      isActive: kakeiboOpen,
+    },
+    {
+      icon:    <CheckIcon size={24} />,
+      label:   "Check",
+      onClick: undefined,
+    },
   ];
 
   return (
     <>
-      {/* ── TextBox（Mic ボタンの上に重ねて表示） ── */}
+      {/* ── 音声入力 TextBox ── */}
       {voiceOpen && (
         <TextBox
           onClose={() => setVoiceOpen(false)}
-          onSubmit={handleSubmit}
+          onSubmit={handleVoiceSubmit}
         />
+      )}
+
+      {/* ── 家計簿モーダル ── */}
+      {kakeiboOpen && (
+        <Kakeibo onClose={() => setKakeiboOpen(false)} />
       )}
 
       {/* ── FloatingActions バー ── */}

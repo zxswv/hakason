@@ -26,9 +26,11 @@ const DAY_HEADERS = ["月", "火", "水", "木", "金", "土", "日"];
 interface Props {
   previewEvent?: CalendarEvent | null;
   onPreviewConsumed?: () => void;
+  /** events が変化するたびに親へ通知（ScheduleReminder 連携用） */
+  onEventsChange?: (events: CalendarEvent[]) => void;
 }
 
-export default function Calendar({ previewEvent, onPreviewConsumed }: Props) {
+export default function Calendar({ previewEvent, onPreviewConsumed, onEventsChange }: Props) {
   const [currentDate,  setCurrentDate]  = useState(new Date(2026, 1, 1));
   const [events,       setEvents]       = useState<CalendarEvent[]>(INITIAL_EVENTS);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -93,16 +95,22 @@ export default function Calendar({ previewEvent, onPreviewConsumed }: Props) {
   const handleSaveEvent = (event: CalendarEvent) => {
     setEvents((prev) => {
       const exists = prev.some((e) => e.id === event.id);
-      return exists
+      const next = exists
         ? prev.map((e) => (e.id === event.id ? event : e))
         : [...prev, event];
+      onEventsChange?.(next);
+      return next;
     });
     setDialogOpen(false);
     setEditingEvent(null);
   };
 
   const handleDeleteEvent = (eventId: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    setEvents((prev) => {
+      const next = prev.filter((e) => e.id !== eventId);
+      onEventsChange?.(next);
+      return next;
+    });
     setDialogOpen(false);
     setEditingEvent(null);
   };
