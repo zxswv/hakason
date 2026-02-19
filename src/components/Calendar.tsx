@@ -30,12 +30,27 @@ import EventDialog from "@/components/EventDialog";
 
 const MAX_VISIBLE_EVENTS = 3;
 
-export default function Calendar() {
+interface CalendarProps {
+  /** 外部（音声入力など）から追加されたイベント */
+  pendingEvent?: CalendarEvent | null;
+  onPendingConsumed?: () => void;
+}
+
+export default function Calendar({ pendingEvent, onPendingConsumed }: CalendarProps = {}) {
   const [currentDate, setCurrentDate] = useState(new Date(2026, 1, 1));
   const [events, setEvents] = useState<CalendarEvent[]>(INITIAL_EVENTS);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+
+  // 音声入力などから pendingEvent が来たら即追加してその月に移動
+  const [lastPendingId, setLastPendingId] = useState<string | null>(null);
+  if (pendingEvent && pendingEvent.id !== lastPendingId) {
+    setLastPendingId(pendingEvent.id);
+    setEvents((prev) => [...prev, pendingEvent]);
+    setCurrentDate(new Date(pendingEvent.date.getFullYear(), pendingEvent.date.getMonth(), 1));
+    onPendingConsumed?.();
+  }
 
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
@@ -93,7 +108,7 @@ export default function Calendar() {
   const DAY_HEADERS = ["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "サン"];
 
   return (
-    <div className="flex flex-col h-screen bg-white font-sans">
+    <div className="flex flex-col h-screen bg-white font-sans pb-24">
       {/* ヘッダー */}
       <header className="flex items-center px-4 py-2 border-b border-gray-200 bg-white">
         <div className="flex items-center gap-2 mr-6">
