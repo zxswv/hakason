@@ -1,0 +1,43 @@
+services:
+  next.js: #本番環境のみ構築、↓ ここから開発環境ならコメントアウト
+    build: #コンテナ1
+      context: . #コンテキスト
+      dockerfile: ./Dockerfile.next.js
+    container_name: 2next.js #コンテナ名
+    working_dir: /hakason #作業ディレクトリを/appに設定
+    command: sh -c "npm run dev -- -H 0.0.0.0 -p 3300" #prismaがうまく行ったらポート3300で起動
+    # command: sh -c "npx prisma generate && npm run dev -- -p 3300" #prismaがうまく行ったらポート3300で起動
+    volumes:
+      - .:/app #ボリュームをマウント
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3300:3300"
+      # - "5555:5555" #ポート番号
+  #   depends_on:
+  #     - DB
+  # # ↑ ここまでコメントアウト
+
+  # DB: #コンテナ2
+  #   image: postgres:14 #イメージ名
+  #   container_name: db #コンテナ名
+  #   # container_name: db #コンテナ名
+  #   restart: always #常に再起動
+  #   # command: --skip-grant-tables --skip-networking #MySQLサーバーは特定のセキュリティ機能を無効
+  #   environment:
+  #     # POSTGRES_ROOT_PASSWORD: tt #rootパスワード
+  #     POSTGRES_USER: tt #ユーザ名
+  #     POSTGRES_PASSWORD: tt #パスワード
+  #     POSTGRES_DB: DB #データベース名
+  #   volumes:
+  #     - db:/var/lib/postgresql/data #データ永続化
+  #   ports:
+  #     - "5432:5432" #ポート番号
+
+networks: #ネットワーク
+  default:
+    name: hakason_net #ネットワーク名
+
+# volumes: #ボリューム
+#   db: #ボリューム名
+#     driver: local #ドライバ
