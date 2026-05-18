@@ -4,16 +4,18 @@ import { useState, useMemo } from "react";
 import FloatingActions from "@/components/under botton/page";
 import Calendar from "@/components/Calendar";
 import VoiceRecorder from "@/components/voice";
-import  kakeibo from "@/components/kakeibo";
+import kakeibo from "@/components/kakeibo";
 import { ScheduleReminder } from "@/components/ScheduleReminder";
 import { CalendarEvent } from "@/lib/types";
 import { INITIAL_EVENTS } from "@/lib/events";
 import { Kameron } from "next/font/google";
+import CompanyList from "@/components/CompanyList";
 
 export default function Home() {
   const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null);
   // Calendar と ScheduleReminder が共有する events の「スナップショット」
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>(INITIAL_EVENTS);
+  const [calendarEvents, setCalendarEvents] =
+    useState<CalendarEvent[]>(INITIAL_EVENTS);
 
   /**
    * ScheduleReminder が期待する形式に変換。
@@ -43,18 +45,19 @@ export default function Home() {
   return (
     <div className="relative">
       <main>
-        <Calendar
+        {/* <Calendar
           previewEvent={previewEvent}
           onPreviewConsumed={() => setPreviewEvent(null)}
           onEventsChange={setCalendarEvents}
-        />
+        /> */}
+        <CompanyList />
       </main>
 
       {/* 右上に固定：次の予定カウントダウン + 通知リマインダー */}
-      <ScheduleReminder events={reminderEvents} />
+      {/* <ScheduleReminder events={reminderEvents} /> */}
 
       {/* 下部固定：FloatingActions バー */}
-      <FloatingActions onPreviewEvent={(event) => setPreviewEvent(event)} />
+      {/* <FloatingActions onPreviewEvent={(event) => setPreviewEvent(event)} /> */}
     </div>
   );
 }
