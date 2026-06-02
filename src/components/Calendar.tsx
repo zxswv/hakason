@@ -1,62 +1,84 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  startOfWeek,
-  endOfWeek,
-  eachDayOfInterval,
-  addMonths,
-  subMonths,
-  isSameMonth,
-  isToday,
-  isSunday,
-  isSaturday,
+  format, startOfMonth, endOfMonth,
+  startOfWeek, endOfWeek, eachDayOfInterval,
+  addMonths, subMonths,
+  isSameMonth, isToday, isSaturday, isSunday,
 } from "date-fns";
 import { ja } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
+import {
+  ChevronLeft, ChevronRight, Plus, Search,
+  Calendar as CalendarIcon, List,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CalendarEvent } from "@/lib/types";
 import {
-  INITIAL_EVENTS,
-  getEventsForDay,
-  isEventStart,
-  isEventEnd,
-  CALENDARS,
+  INITIAL_EVENTS, getEventsForDay,
+  isEventStart, isEventEnd,
 } from "@/lib/events";
 import EventDialog from "@/components/EventDialog";
 
 const MAX_VISIBLE_EVENTS = 3;
+const DAY_HEADERS = ["月", "火", "水", "木", "金", "土", "日"];
 
-export default function Calendar() {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 1, 1));
-  const [events, setEvents] = useState<CalendarEvent[]>(INITIAL_EVENTS);
+interface Props {
+  previewEvent?: CalendarEvent | null;
+  onPreviewConsumed?: () => void;
+  /** events が変化するたびに親へ通知（ScheduleReminder 連携用） */
+  onEventsChange?: (events: CalendarEvent[]) => void;
+}
+
+export default function Calendar({ previewEvent, onPreviewConsumed, onEventsChange }: Props) {
+  const [currentDate,  setCurrentDate]  = useState(new Date(2026, 1, 1));
+  const [events,       setEvents]       = useState<CalendarEvent[]>(INITIAL_EVENTS);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogOpen,   setDialogOpen]   = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [showList,     setShowList]     = useState(false);
 
+  // ── 仮予定（音声入力など外部から）が渡されたら EventDialog を開く ──
+  useEffect(() => {
+    if (!previewEvent) return;
+    setCurrentDate(
+      new Date(previewEvent.date.getFullYear(), previewEvent.date.getMonth(), 1)
+    );
+    setSelectedDate(previewEvent.date);
+    setEditingEvent(previewEvent);
+    setDialogOpen(true);
+    onPreviewConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewEvent]);
+
+  // ── カレンダーグリッド計算 ──────────────────────────────────────
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
-    const monthEnd = endOfMonth(currentDate);
-    const calStart = startOfWeek(monthStart, { weekStartsOn: 1 }); // 月曜始まり
-    const calEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    const monthEnd   = endOfMonth(currentDate);
+    const calStart   = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const calEnd     = endOfWeek(monthEnd,     { weekStartsOn: 1 });
     return eachDayOfInterval({ start: calStart, end: calEnd });
   }, [currentDate]);
 
   const weeks = useMemo(() => {
     const result: Date[][] = [];
-    for (let i = 0; i < calendarDays.length; i += 7) {
+    for (let i = 0; i < calendarDays.length; i += 7)
       result.push(calendarDays.slice(i, i + 7));
-    }
     return result;
   }, [calendarDays]);
 
-  const handlePrevMonth = () => setCurrentDate(subMonths(currentDate, 1));
-  const handleNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
-  const handleToday = () => setCurrentDate(new Date());
+  // ── リスト表示用：現在の月のイベントを日付・時間順にソート ──────
+  const sortedEvents = useMemo(() => {
+    return events
+      .filter((ev) => isSameMonth(ev.date, currentDate))
+      .sort((a, b) => {
+        const d = a.date.getTime() - b.date.getTime();
+        if (d !== 0) return d;
+        return (a.startTime ?? "").localeCompare(b.startTime ?? "");
+      });
+  }, [events, currentDate]);
 
+  // ── イベントハンドラ ────────────────────────────────────────────
   const handleDayClick = (date: Date) => {
     setSelectedDate(date);
     setEditingEvent(null);
@@ -71,216 +93,275 @@ export default function Calendar() {
   };
 
   const handleSaveEvent = (event: CalendarEvent) => {
-    if (editingEvent) {
-      setEvents((prev) => prev.map((e) => (e.id === event.id ? event : e)));
-    } else {
-      setEvents((prev) => [...prev, event]);
-    }
+    setEvents((prev) => {
+      const exists = prev.some((e) => e.id === event.id);
+      const next = exists
+        ? prev.map((e) => (e.id === event.id ? event : e))
+        : [...prev, event];
+      onEventsChange?.(next);
+      return next;
+    });
     setDialogOpen(false);
     setEditingEvent(null);
   };
 
   const handleDeleteEvent = (eventId: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    setEvents((prev) => {
+      const next = prev.filter((e) => e.id !== eventId);
+      onEventsChange?.(next);
+      return next;
+    });
     setDialogOpen(false);
     setEditingEvent(null);
   };
 
-  const getDayEvents = (day: Date) => {
-    return getEventsForDay(events, day);
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      setDialogOpen(false);
+      setEditingEvent(null);
+    }
   };
 
-  const DAY_HEADERS = ["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "サン"];
-
+  // ── レンダリング ────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-screen bg-white font-sans">
-      {/* ヘッダー */}
-      <header className="flex items-center px-4 py-2 border-b border-gray-200 bg-white">
-        <div className="flex items-center gap-2 mr-6">
-          <span className="text-teal-500 font-bold text-xl">カレンダー</span>
-        </div>
+    <div className="flex flex-col h-screen bg-white font-sans pb-24">
+
+      {/* ── ヘッダー ── */}
+      <header className="flex items-center px-4 py-2 border-b border-gray-200 bg-white shrink-0 gap-2 flex-wrap">
+        <span className="text-teal-500 font-bold text-xl select-none"></span>
 
         <Button
-          variant="outline"
-          size="sm"
-          onClick={handleToday}
-          className="mr-3 text-sm font-medium"
+          variant="outline" size="sm"
+          onClick={() => setCurrentDate(new Date())}
+          className="text-sm font-medium"
         >
           今日
         </Button>
 
-        <div className="flex items-center gap-1 mr-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handlePrevMonth}
-            className="w-7 h-7"
-          >
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="w-7 h-7"
+            onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleNextMonth}
-            className="w-7 h-7"
-          >
+          <Button variant="ghost" size="icon" className="w-7 h-7"
+            onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
 
-        <h1 className="text-lg font-semibold text-gray-800 mr-6">
+        <h1 className="text-lg font-semibold text-gray-800">
           {format(currentDate, "yyyy年M月", { locale: ja })}
         </h1>
 
+        {/* 右側ツール群 */}
         <div className="flex gap-1 ml-auto items-center">
           <Button variant="ghost" size="icon" className="w-8 h-8">
             <Search className="w-4 h-4 text-gray-500" />
           </Button>
+
           <Button
             size="sm"
-            onClick={() => {
-              setSelectedDate(new Date());
-              setEditingEvent(null);
-              setDialogOpen(true);
-            }}
+            onClick={() => { setSelectedDate(new Date()); setEditingEvent(null); setDialogOpen(true); }}
             className="bg-teal-500 hover:bg-teal-600 text-white rounded-full w-8 h-8 p-0"
           >
             <Plus className="w-4 h-4" />
           </Button>
+
+          {/* 月表示 / リスト 切替タブ */}
+          <div className="flex bg-gray-100 p-0.5 rounded-lg">
+            <Button
+              variant={!showList ? "secondary" : "ghost"}
+              size="sm"
+              className={`h-7 px-2 text-[10px] sm:text-xs transition-all ${!showList ? "bg-white shadow-sm" : "text-gray-500"}`}
+              onClick={() => setShowList(false)}
+            >
+              <CalendarIcon className="w-3 h-3 mr-1" />
+              月
+            </Button>
+            <Button
+              variant={showList ? "secondary" : "ghost"}
+              size="sm"
+              className={`h-7 px-2 text-[10px] sm:text-xs transition-all ${showList ? "bg-white shadow-sm" : "text-gray-500"}`}
+              onClick={() => setShowList(true)}
+            >
+              <List className="w-3 h-3 mr-1" />
+              リスト
+            </Button>
+          </div>
         </div>
       </header>
 
-      {/* カレンダーグリッド */}
-      <div className="flex-1 overflow-auto">
-        <div className="grid grid-cols-7 border-b border-gray-200">
-          {DAY_HEADERS.map((day, i) => (
-            <div
-              key={day}
-              className={`py-2 text-center text-xs font-medium border-r border-gray-100 last:border-r-0 ${
-                i === 5
-                  ? "text-blue-500"
-                  : i === 6
-                  ? "text-red-500"
-                  : "text-gray-600"
-              }`}
-            >
-              {day}
+      {/* ── メインコンテンツ ── */}
+      {showList ? (
+        /* ════ リスト表示 ════ */
+        <div className="flex-1 overflow-auto px-4 py-2">
+          {sortedEvents.length === 0 ? (
+            <div className="text-center text-gray-400 mt-16 text-sm">
+              この月の予定はありません
             </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 flex-1">
-          {weeks.map((week, weekIdx) =>
-            week.map((day, dayIdx) => {
-              const dayEvents = getDayEvents(day);
-              const isCurrentMonth = isSameMonth(day, currentDate);
-              const isTodayDate = isToday(day);
-              const isSat = isSaturday(day);
-              const isSun = isSunday(day);
-
-              const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
-              const hiddenCount = dayEvents.length - MAX_VISIBLE_EVENTS;
-
-              return (
+          ) : (
+            <div className="space-y-2">
+              {sortedEvents.map((event) => (
                 <div
-                  key={day.toISOString()}
-                  onClick={() => handleDayClick(day)}
-                  className={`min-h-[110px] border-b border-r border-gray-100 last:border-r-0 p-1 cursor-pointer hover:bg-gray-50 transition-colors ${
-                    !isCurrentMonth ? "bg-gray-50/50" : ""
-                  }`}
+                  key={event.id}
+                  onClick={(e) => handleEventClick(event, e)}
+                  className="flex items-start gap-3 p-3 rounded-xl border border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
                 >
-                  {/* 日付 */}
-                  <div className="flex items-center mb-1">
-                    <span
-                      className={`text-sm font-medium w-6 h-6 flex items-center justify-center rounded-full ${
-                        isTodayDate
-                          ? "bg-teal-500 text-white"
-                          : !isCurrentMonth
-                          ? "text-gray-400"
-                          : isSun
-                          ? "text-red-500"
-                          : isSat
-                          ? "text-blue-500"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      {format(day, "d")}
-                    </span>
-                  </div>
-
-                  {/* イベント */}
-                  <div className="space-y-0.5">
-                    {visibleEvents.map((event) => {
-                      const isStart = isEventStart(event, day);
-                      const isEnd = isEventEnd(event, day);
-                      const isMultiDay = !!event.endDate && event.isAllDay;
-
-                      return (
-                        <div
-                          key={`${event.id}-${day.toISOString()}`}
-                          onClick={(e) => handleEventClick(event, e)}
-                          className={`text-xs py-0.5 px-1 cursor-pointer hover:opacity-80 transition-opacity overflow-hidden whitespace-nowrap overflow-ellipsis ${
-                            event.isAllDay
-                              ? `text-white font-medium ${
-                                  isStart && isEnd
-                                    ? "rounded"
-                                    : isStart
-                                    ? "rounded-l mr-0 pr-0"
-                                    : isEnd
-                                    ? "rounded-r ml-0 pl-0"
-                                    : "mx-0 px-0"
-                                }`
-                              : "rounded text-gray-700"
-                          }`}
-                          style={{
-                            backgroundColor: event.isAllDay
-                              ? event.color
-                              : "transparent",
-                            borderLeft: !event.isAllDay
-                              ? `3px solid ${event.color}`
-                              : "none",
-                          }}
-                        >
-                          {(!isMultiDay || isStart) && (
-                            <span>
-                              {!event.isAllDay && event.startTime && (
-                                <span className="opacity-75 mr-1">
-                                  {event.startTime.slice(0, -3) === "00"
-                                    ? event.startTime
-                                    : event.startTime}
-                                </span>
-                              )}
-                              {event.title}
-                            </span>
-                          )}
-                          {isMultiDay && !isStart && <span>&nbsp;</span>}
-                        </div>
-                      );
-                    })}
-                    {hiddenCount > 0 && (
-                      <div className="text-xs text-gray-500 px-1">
-                        +{hiddenCount} 件
-                      </div>
+                  {/* 色バー */}
+                  <div
+                    className="w-1 self-stretch rounded-full shrink-0"
+                    style={{ backgroundColor: event.color }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-medium text-gray-500">
+                        {format(event.date, "M/d（E）", { locale: ja })}
+                      </span>
+                      {!event.isAllDay && event.startTime && (
+                        <span className="text-xs text-gray-400">
+                          {event.startTime}
+                          {event.endTime && ` 〜 ${event.endTime}`}
+                        </span>
+                      )}
+                      {event.isAllDay && (
+                        <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
+                          終日
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm font-semibold text-gray-800 truncate mt-0.5">
+                      {event.title}
+                    </p>
+                    {event.description && (
+                      <p className="text-xs text-gray-400 truncate mt-0.5">
+                        {event.description}
+                      </p>
                     )}
                   </div>
                 </div>
-              );
-            })
+              ))}
+            </div>
           )}
         </div>
-      </div>
+      ) : (
+        /* ════ 月カレンダー表示 ════ */
+        <>
+          {/* 曜日ヘッダー */}
+          <div className="grid grid-cols-7 border-b border-gray-200 shrink-0">
+            {DAY_HEADERS.map((day, i) => (
+              <div
+                key={day}
+                className={`py-2 text-center text-xs font-medium border-r border-gray-100 last:border-r-0 ${
+                  i === 5 ? "text-blue-500" : i === 6 ? "text-red-500" : "text-gray-600"
+                }`}
+              >
+                {day}
+              </div>
+            ))}
+          </div>
 
-      {/* イベント追加/編集ダイアログ */}
-      {dialogOpen && (
-        <EventDialog
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-          selectedDate={selectedDate}
-          editingEvent={editingEvent}
-          onSave={handleSaveEvent}
-          onDelete={handleDeleteEvent}
-        />
+          {/* グリッド */}
+          <div className="flex-1 overflow-auto">
+            <div className="grid grid-cols-7">
+              {weeks.map((week) =>
+                week.map((day) => {
+                  const dayEvents   = getEventsForDay(events, day);
+                  const inMonth     = isSameMonth(day, currentDate);
+                  const todayFlag   = isToday(day);
+                  const isSat       = isSaturday(day);
+                  const isSun       = isSunday(day);
+                  const visible     = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
+                  const hiddenCount = dayEvents.length - MAX_VISIBLE_EVENTS;
+
+                  return (
+                    <div
+                      key={day.toISOString()}
+                      onClick={() => handleDayClick(day)}
+                      className={`min-h-[90px] border-b border-r border-gray-100 last:border-r-0 p-1 cursor-pointer hover:bg-gray-50 transition-colors ${
+                        !inMonth ? "bg-gray-50/50" : ""
+                      }`}
+                    >
+                      <div className="flex items-center mb-1">
+                        <span
+                          className={`text-sm font-medium w-6 h-6 flex items-center justify-center rounded-full ${
+                            todayFlag
+                              ? "bg-teal-500 text-white"
+                              : !inMonth
+                              ? "text-gray-400"
+                              : isSun
+                              ? "text-red-500"
+                              : isSat
+                              ? "text-blue-500"
+                              : "text-gray-700"
+                          }`}
+                        >
+                          {format(day, "d")}
+                        </span>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        {visible.map((event) => {
+                          const evStart  = isEventStart(event, day);
+                          const evEnd    = isEventEnd(event, day);
+                          const multiDay = !!event.endDate && event.isAllDay;
+
+                          return (
+                            <div
+                              key={`${event.id}-${day.toISOString()}`}
+                              onClick={(e) => handleEventClick(event, e)}
+                              className={`text-xs py-0.5 px-1 cursor-pointer hover:opacity-80 transition-opacity overflow-hidden whitespace-nowrap text-ellipsis ${
+                                event.isAllDay
+                                  ? `text-white font-medium ${
+                                      evStart && evEnd ? "rounded"
+                                      : evStart        ? "rounded-l pr-0"
+                                      : evEnd          ? "rounded-r pl-0"
+                                      : "px-0"
+                                    }`
+                                  : "rounded text-gray-700"
+                              }`}
+                              style={{
+                                backgroundColor: event.isAllDay ? event.color : "transparent",
+                                borderLeft: !event.isAllDay ? `3px solid ${event.color}` : "none",
+                              }}
+                            >
+                              {(!multiDay || evStart) && (
+                                <span>
+                                  {!event.isAllDay && event.startTime && (
+                                    <span className="opacity-75 mr-1 text-[10px]">
+                                      {event.startTime}
+                                    </span>
+                                  )}
+                                  {event.title}
+                                </span>
+                              )}
+                              {multiDay && !evStart && <span>&nbsp;</span>}
+                            </div>
+                          );
+                        })}
+                        {hiddenCount > 0 && (
+                          <div className="text-xs text-gray-500 px-1">
+                            +{hiddenCount} 件
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </>
       )}
+
+      {/* EventDialog（新規追加 / 編集 / 音声入力の仮予定確認を兼用） */}
+      <EventDialog
+        open={dialogOpen}
+        onOpenChange={handleDialogClose}
+        selectedDate={selectedDate}
+        editingEvent={editingEvent}
+        onSave={handleSaveEvent}
+        onDelete={handleDeleteEvent}
+      />
     </div>
   );
 }
